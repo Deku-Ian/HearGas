@@ -1,10 +1,22 @@
-import { View, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import React from "react";
 
-export default function Page() {
+const Page = () => {
   return (
     <View>
-      <Text style={{ fontSize: 20 }}>Not Found!!!</Text>
+      <Text style={styles.NotFound}>Not Found!!!</Text>
     </View>
   );
-}
+};
+
+export default Page;
+
+const styles = StyleSheet.create({
+  NotFound: {
+    fontSize: 20,
+    textAlign: "center",
+    marginTop: 20,
+    alignContent: "center",
+    justifyContent: "center",
+  },
+});

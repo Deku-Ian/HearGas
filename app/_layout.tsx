@@ -1,4 +1,4 @@
-import { View, Text, Button } from "react-native";
+import { Button } from "react-native";
 import React from "react";
 import { Stack, useRouter } from "expo-router";
 
@@ -21,11 +21,11 @@ export default function _layout() {
       <Stack.Screen
         name="main/index"
         options={{
-          title: "Home Page",
+          headerShown: false,
           headerRight: () => (
             <Button
               title="Connect"
-              onPress={() => router.push("/modal/pairing")}
+              onPress={() => router.push("/(modal)/pairing")}
             />
           ),
         }}

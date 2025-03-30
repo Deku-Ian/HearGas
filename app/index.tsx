@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Image } from "react-native";
+import { StyleSheet, View, Image } from "react-native";
 import React, { useEffect } from "react";
 import { colors } from "@/constants/theme";
 import { useRouter } from "expo-router";
@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutra1900,
   },
   logo: {
-    height: "30%",
+    height: "50%",
     aspectRatio: 1,
   },
 });
