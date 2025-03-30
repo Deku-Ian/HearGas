@@ -1,24 +1,17 @@
-import { View, Text } from "react-native";
+import { StyleSheet } from "react-native";
 import React from "react";
-import { Tabs, Stack } from "expo-router";
+import { Tabs } from "expo-router";
+import CustomTabs from "@/components/CustomTabs";
 
-export default function _layout() {
+const _layout = () => {
   return (
-    <Tabs>
-      <Tabs.Screen
-        name="dashboard"
-        options={{
-          headerTitle: "DashBoard",
-          tabBarLabel: "DashBoard",
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          headerTitle: "History",
-          tabBarLabel: "History",
-        }}
-      />
+    <Tabs tabBar={CustomTabs} screenOptions={{ headerShown: false }}>
+      <Tabs.Screen name="dashboard" />
+      <Tabs.Screen name="history" />
     </Tabs>
   );
-}
+};
+
+export default _layout;
+
+const styles = StyleSheet.create({});

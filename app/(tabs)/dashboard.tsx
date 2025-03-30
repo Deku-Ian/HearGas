@@ -1,13 +1,19 @@
-import { View, Text, Button } from "react-native";
+import { Button, StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { useRouter } from "expo-router";
+import ScreenWrapper from "@/components/ScreenWrapper";
+import Typo from "@/components/Typo";
 
-export default function Page() {
+const dashboard = () => {
   const router = useRouter();
   return (
-    <View>
-      <Text>This is Dashboard</Text>
+    <ScreenWrapper>
+      <Typo>dashboard</Typo>
       <Button title="Back" onPress={() => router.back()} />
-    </View>
+    </ScreenWrapper>
   );
-}
+};
+
+export default dashboard;
+
+const styles = StyleSheet.create({});

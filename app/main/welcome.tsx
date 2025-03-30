@@ -1,14 +1,14 @@
-import { StyleSheet, Text, View, Image } from "react-native";
-import React, { useEffect } from "react";
-import { router, useRouter } from "expo-router";
+import { StyleSheet, View } from "react-native";
+import { useRouter } from "expo-router";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import Typo from "@/components/Typo";
 import { colors, spacingx, spacingy } from "@/constants/theme";
 import { verticalScale } from "@/utils/styling";
 import Button from "@/components/Button";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 const welcome = () => {
+  const router = useRouter();
   return (
     <ScreenWrapper style={styles.container}>
       <View style={styles.container}>
@@ -21,32 +21,47 @@ const welcome = () => {
       </View>
       {/* footer */}
       <View style={styles.footer}>
-        <View style={{ alignItems: "center" }}>
+        <Animated.View
+          entering={FadeInDown.duration(1000).springify().damping(12)}
+          style={{ alignItems: "center" }}
+        >
           <Typo size={30} fontweight={"800"}>
             HearGas
           </Typo>
           <Typo size={30} fontweight={"800"}>
             Air Quality Monitor
           </Typo>
-        </View>
-        <View style={{ alignItems: "center", gap: 2 }}>
+        </Animated.View>
+        <Animated.View
+          entering={FadeInDown.duration(1000)
+            .delay(100)
+            .springify()
+            .damping(12)}
+          style={{ alignItems: "center", gap: 2 }}
+        >
           <Typo size={17} color={colors.textLight}>
             Be aware of the air you breathe
           </Typo>
           <Typo size={17} color={colors.textLight}>
             and protect your health
           </Typo>
-        </View>
+        </Animated.View>
 
-        <View style={styles.buttonContainer}>
+        <Animated.View
+          entering={FadeInDown.duration(1000)
+            .delay(200)
+            .springify()
+            .damping(12)}
+          style={styles.buttonContainer}
+        >
           <Button
             onPress={() => {
               router.push("/main");
             }}
           >
-            <Typo>Login</Typo>
+            <Typo>Get Started</Typo>
           </Button>
-        </View>
+        </Animated.View>
       </View>
     </ScreenWrapper>
   );
@@ -68,10 +83,6 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(100),
   },
 
-  loginButton: {
-    alignSelf: "flex-end",
-    marginRight: spacingx._20,
-  },
   footer: {
     backgroundColor: colors.neutra1900,
     alignItems: "center",

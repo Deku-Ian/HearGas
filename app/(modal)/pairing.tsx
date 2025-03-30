@@ -1,16 +1,16 @@
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
-import ScreenWrapper from "@/components/ScreenWrapper";
+import ModalWrapper from "@/components/ModalWrapper";
 import Typo from "@/components/Typo";
 
-const history = () => {
+const pairing = () => {
   return (
-    <ScreenWrapper>
-      <Typo>history</Typo>
-    </ScreenWrapper>
+    <ModalWrapper>
+      <Typo>pairing</Typo>
+    </ModalWrapper>
   );
 };
 
-export default history;
+export default pairing;
 
 const styles = StyleSheet.create({});

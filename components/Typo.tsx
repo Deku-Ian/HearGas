@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import React, { Children } from "react";
 import { colors } from "@/constants/theme";
 import { TypoProps } from "@/types";
