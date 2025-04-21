@@ -1,4 +1,5 @@
-import { StyleSheet, View, Image } from "react-native";
+import { StyleSheet, View, Image, ImageBackground } from "react-native";
+import ScreenWrapper from "@/components/ScreenWrapper";
 import React, { useEffect } from "react";
 import { colors } from "@/constants/theme";
 import { useRouter } from "expo-router";
@@ -11,13 +12,16 @@ const index = () => {
     }, 2000);
   }, []);
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      style={styles.container}
+      source={require("./../assets/images/bg.png")}
+    >
       <Image
         style={styles.logo}
         resizeMode="contain"
         source={require("./../assets/images/logo.png")}
       />
-    </View>
+    </ImageBackground>
   );
 };
 
@@ -25,10 +29,9 @@ export default index;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     justifyContent: "center",
+    flex: 1,
     alignItems: "center",
-    backgroundColor: colors.neutra1900,
   },
   logo: {
     height: "50%",

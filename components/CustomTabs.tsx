@@ -9,6 +9,7 @@ import { verticalScale } from "@/utils/styling";
 import { useIsFocused } from "@react-navigation/native";
 import * as Icons from "phosphor-react-native";
 import dashboard from "@/app/(tabs)/dashboard";
+import setting from "@/app/(tabs)/settings";
 
 export default function CustomTabs({
   state,
@@ -20,14 +21,21 @@ export default function CustomTabs({
       <Icons.House
         size={verticalScale(30)}
         weight={IsFocused ? "fill" : "regular"}
-        color={IsFocused ? colors.primary : colors.neutral400}
+        color={IsFocused ? colors.primaryDark : colors.neutral400}
       />
     ),
     history: (IsFocused: boolean) => (
       <Icons.ClockCounterClockwise
         size={verticalScale(30)}
         weight={IsFocused ? "fill" : "regular"}
-        color={IsFocused ? colors.primary : colors.neutral400}
+        color={IsFocused ? colors.primaryDark : colors.neutral400}
+      />
+    ),
+    settings: (IsFocused: boolean) => (
+      <Icons.Gear
+        size={verticalScale(30)}
+        weight={IsFocused ? "fill" : "regular"}
+        color={IsFocused ? colors.primaryDark : colors.neutral400}
       />
     ),
   };

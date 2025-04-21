@@ -8,6 +8,7 @@ const _layout = () => {
     <Tabs tabBar={CustomTabs} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="dashboard" />
       <Tabs.Screen name="history" />
+      <Tabs.Screen name="settings" />
     </Tabs>
   );
 };

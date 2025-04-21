@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, ImageBackground } from "react-native";
 import { useRouter } from "expo-router";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import Typo from "@/components/Typo";
@@ -12,12 +12,17 @@ const welcome = () => {
   return (
     <ScreenWrapper style={styles.container}>
       <View style={styles.container}>
-        <Animated.Image
-          entering={FadeIn.duration(1000)}
-          style={styles.welcomeImage}
-          resizeMode="contain"
-          source={require("@/assets/images/logo.png")}
-        />
+        <ImageBackground
+          style={styles.container}
+          source={require("@/assets/images/bg.png")}
+        >
+          <Animated.Image
+            entering={FadeIn.duration(1000)}
+            style={styles.welcomeImage}
+            resizeMode="contain"
+            source={require("@/assets/images/react-logo.png")}
+          />
+        </ImageBackground>
       </View>
       {/* footer */}
       <View style={styles.footer}>
@@ -73,7 +78,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "space-between",
-    paddingTop: spacingy._7,
+    paddingTop: spacingy._5,
   },
 
   welcomeImage: {
@@ -89,7 +94,7 @@ const styles = StyleSheet.create({
     paddingTop: verticalScale(30),
     paddingBottom: verticalScale(45),
     gap: spacingy._20,
-    shadowColor: "white",
+    shadowColor: "black",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -101,5 +106,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: "100%",
     paddingHorizontal: spacingx._25,
+    alignItems: "center",
   },
 });

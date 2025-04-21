@@ -1,3 +1,6 @@
+import { Buffer } from "buffer";
+global.Buffer = global.Buffer || Buffer;
+
 import { Button } from "react-native";
 import React from "react";
 import { Stack, useRouter } from "expo-router";
@@ -5,19 +8,9 @@ import { Stack, useRouter } from "expo-router";
 export default function _layout() {
   const router = useRouter();
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: "gray",
-        },
-        headerTintColor: "#fff",
-        headerTitleStyle: {
-          fontWeight: "bold",
-        },
-      }}
-    >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="main/welcome" options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="main/welcome" />
       <Stack.Screen
         name="main/index"
         options={{
@@ -31,10 +24,11 @@ export default function _layout() {
         }}
       />
       <Stack.Screen
-        name="modal/pairing"
-        options={{ title: "Connect to device", presentation: "modal" }}
+        name="(modal)/pairing"
+        options={{ presentation: "modal" }}
       />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="(modal)/about" options={{ presentation: "modal" }} />
+      <Stack.Screen name="(tabs)" />
       <Stack.Screen name="[missing]" options={{ title: "404" }} />
     </Stack>
   );

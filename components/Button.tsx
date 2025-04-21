@@ -36,10 +36,11 @@ export default Button;
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: colors.primaryDark,
+    backgroundColor: colors.primary,
     borderRadius: radius._17,
     borderCurve: "continuous",
     height: verticalScale(52),
+    width: "100%",
     justifyContent: "center",
     alignItems: "center",
   },

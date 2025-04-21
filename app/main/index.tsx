@@ -18,21 +18,46 @@ const home = () => {
         <View style={styles.headerTitleContainer}>
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={() => router.push("/modal/pairing")}
+            onPress={() => router.push("/(modal)/pairing")}
           >
             <Typo fontweight={"500"}>Connect</Typo>
           </TouchableOpacity>
         </View>
       </View>
-      <View>
-        <Animated.Image
-          entering={FadeIn.duration(1000)}
-          style={styles.welcomeImage}
-          resizeMode="contain"
-          source={require("@/assets/images/bluetooth.png")}
-        />
-      </View>
+      <View style={styles.IconContainer}>
+        <View style={styles.iconGroup}>
+          {/* Bluetooth icon */}
+          <View style={styles.iconBox}>
+            <Animated.Image
+              entering={FadeIn.duration(1000)}
+              resizeMode="contain"
+              style={[styles.icon, { tintColor: colors.white }]}
+              source={require("@/assets/images/bluetooth.png")}
+            />
+          </View>
 
+          {/* Signal icon */}
+          <View style={styles.iconBox}>
+            <Animated.Image
+              entering={FadeIn.duration(1000).delay(100)}
+              resizeMode="contain"
+              style={[styles.icon, { tintColor: colors.white }]}
+              source={require("@/assets/images/signal.png")}
+            />
+          </View>
+
+          {/* Mask icon */}
+          <View style={styles.iconBox}>
+            <Animated.Image
+              entering={FadeIn.duration(1000).delay(200)}
+              resizeMode="contain"
+              style={styles.icon}
+              source={require("@/assets/images/mask.png")}
+            />
+          </View>
+        </View>
+      </View>
+      <View style={{ flex: 1 }} />
       {/* footer */}
       <View style={styles.footer}>
         <Animated.View
@@ -75,7 +100,7 @@ const home = () => {
               router.push("../(tabs)/dashboard");
             }}
           >
-            <Typo>Get Started</Typo>
+            <Typo>Go to dashboard</Typo>
           </Button>
         </Animated.View>
       </View>
@@ -87,7 +112,7 @@ export default home;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 2,
+    flex: 1,
     justifyContent: "space-between",
     paddingTop: spacingy._7,
   },
@@ -102,6 +127,32 @@ const styles = StyleSheet.create({
   gotohome: {
     alignItems: "center",
     justifyContent: "flex-end",
+  },
+  IconContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: spacingy._5,
+    marginTop: spacingy._5,
+  },
+  iconGroup: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: colors.neutral700,
+    borderRadius: 16,
+    padding: spacingx._15,
+
+    width: "100%",
+  },
+  iconBox: {
+    width: 60,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  icon: {
+    width: 80,
+    height: 80,
   },
 
   footer: {
@@ -123,7 +174,7 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingHorizontal: spacingx._25,
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     paddingTop: spacingy._35,
   },
