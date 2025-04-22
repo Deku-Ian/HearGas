@@ -10,40 +10,43 @@ import {
 import React, { useState, useEffect } from "react";
 import ModalWrapper from "@/components/ModalWrapper";
 import { colors, spacingy } from "@/constants/theme";
-import BluetoothService from "@/services/BluetoothService";
+import { WiFiNetworkService } from "@/services/WifiNetworkService";
+import { verticalScale } from "@/utils/styling";
 import Typo from "@/components/Typo";
 
-interface BluetoothDevice {
+interface WiFiDevice {
   name: string;
   id: string;
+  ip: string;
 }
 
 export default function Page() {
   const [scanning, setScanning] = useState(false);
-  const [devices, setDevices] = useState<BluetoothDevice[]>([]);
+  const [devices, setDevices] = useState<WiFiDevice[]>([]);
   const [connecting, setConnecting] = useState(false);
-  const [connectedDevice, setConnectedDevice] =
-    useState<BluetoothDevice | null>(null);
+  const [connectedDevice, setConnectedDevice] = useState<WiFiDevice | null>(
+    null
+  );
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
     // Initialize the service when component mounts
-    BluetoothService.ensureInitialized()
+    WiFiNetworkService.ensureInitialized()
       .then(() => {
         setInitializing(false);
       })
-      .catch((error) => {
-        console.error("Failed to initialize Bluetooth:", error);
+      .catch((error: Error) => {
+        console.error("Failed to initialize WiFi:", error);
         Alert.alert(
-          "Bluetooth Error",
-          "Failed to initialize Bluetooth service. Please restart the app."
+          "WiFi Error",
+          "Failed to initialize WiFi service. Please restart the app."
         );
         setInitializing(false);
       });
 
     // Cleanup on unmount
     return () => {
-      BluetoothService.disconnect().catch(console.error);
+      WiFiNetworkService.disconnect().catch(console.error);
     };
   }, []);
 
@@ -51,14 +54,8 @@ export default function Page() {
     try {
       setScanning(true);
       setDevices([]);
-      const foundDevices = await BluetoothService.scanForDevices();
-
-      const uniqueDevices = foundDevices.map((device) => ({
-        name: device.name ?? "Unnamed Device",
-        id: device.id ?? Math.random().toString(),
-      }));
-
-      setDevices(uniqueDevices);
+      const foundDevices = await WiFiNetworkService.scanForDevices();
+      setDevices(foundDevices);
     } catch (error) {
       Alert.alert(
         "Scan Error",
@@ -69,7 +66,7 @@ export default function Page() {
     }
   };
 
-  const connectToDevice = async (device: BluetoothDevice) => {
+  const connectToDevice = async (device: WiFiDevice) => {
     if (!device || !device.id) {
       Alert.alert("Connection Error", "Invalid device.");
       return;
@@ -77,7 +74,7 @@ export default function Page() {
 
     try {
       setConnecting(true);
-      const connected = await BluetoothService.connectToDevice(device as any);
+      const connected = await WiFiNetworkService.connectToDevice(device);
 
       if (connected) {
         setConnectedDevice(device);
@@ -95,7 +92,7 @@ export default function Page() {
 
   const disconnectDevice = async () => {
     try {
-      await BluetoothService.disconnect();
+      await WiFiNetworkService.disconnect();
       setConnectedDevice(null);
     } catch (error) {
       Alert.alert(
@@ -105,14 +102,14 @@ export default function Page() {
     }
   };
 
-  const renderDevice = ({ item }: { item: BluetoothDevice }) => (
+  const renderDevice = ({ item }: { item: WiFiDevice }) => (
     <TouchableOpacity
       style={styles.deviceItem}
       onPress={() => connectToDevice(item)}
       disabled={connecting}
     >
       <Text style={styles.deviceName}>{item.name}</Text>
-      <Text style={styles.deviceId}>{item.id}</Text>
+      <Text style={styles.deviceId}>IP: {item.ip}</Text>
     </TouchableOpacity>
   );
 
@@ -123,7 +120,7 @@ export default function Page() {
       {initializing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primaryDark} />
-          <Text style={styles.loadingText}>Initializing Bluetooth...</Text>
+          <Text style={styles.loadingText}>Initializing WiFi...</Text>
         </View>
       ) : connectedDevice ? (
         <View style={styles.connectedContainer}>

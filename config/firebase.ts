@@ -1,13 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import {
-  getAuth,
-  initializeAuth,
-  getReactNativePersistence,
-} from "firebase/auth";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
-// Your web app's Firebase configuration
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyD1_a76blhel8Z4njI9jrsFELehquIWx44",
   authDomain: "heargas-ad61a.firebaseapp.com",
@@ -22,15 +16,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Try to get existing auth instance first
-let auth;
-try {
-  auth = getAuth(app);
-} catch (error) {
-  // If auth doesn't exist yet, initialize it with persistence
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(ReactNativeAsyncStorage),
-  });
-}
-
-export { db, auth };
+export { db };
