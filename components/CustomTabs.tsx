@@ -21,21 +21,21 @@ export default function CustomTabs({
       <Icons.House
         size={verticalScale(30)}
         weight={IsFocused ? "fill" : "regular"}
-        color={IsFocused ? colors.primaryDark : colors.neutral400}
+        color={IsFocused ? colors.primary : colors.neutral400}
       />
     ),
     history: (IsFocused: boolean) => (
       <Icons.ClockCounterClockwise
         size={verticalScale(30)}
         weight={IsFocused ? "fill" : "regular"}
-        color={IsFocused ? colors.primaryDark : colors.neutral400}
+        color={IsFocused ? colors.primary : colors.neutral400}
       />
     ),
     settings: (IsFocused: boolean) => (
       <Icons.Gear
         size={verticalScale(30)}
         weight={IsFocused ? "fill" : "regular"}
-        color={IsFocused ? colors.primaryDark : colors.neutral400}
+        color={IsFocused ? colors.primary : colors.neutral400}
       />
     ),
   };

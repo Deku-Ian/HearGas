@@ -1,19 +1,23 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 
 // Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyD1_a76blhel8Z4njI9jrsFELehquIWx44",
-  authDomain: "heargas-ad61a.firebaseapp.com",
-  projectId: "heargas-ad61a",
-  storageBucket: "heargas-ad61a.firebasestorage.app",
-  messagingSenderId: "642823438145",
-  appId: "1:642823438145:web:67cc685638a0d79d5a6bc0",
-  measurementId: "G-47B3Q6BPR2",
+  apiKey: "AIzaSyBy4FbJ8e1Ys2rrKZmAfpDDyU3H5uZ2R5c",
+  authDomain: "rtmask-cf652.firebaseapp.com",
+  databaseURL: "https://rtmask-cf652-default-rtdb.firebaseio.com",
+  projectId: "rtmask-cf652",
+  storageBucket: "rtmask-cf652.firebasestorage.app",
+  messagingSenderId: "651507857116",
+  appId: "1:651507857116:web:875758863db103bc62e619",
+  measurementId: "G-MFWE06RJ3B",
 };
+
+// Device configuration
+export const DEVICE_ID = "mask001";
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const database = getDatabase(app);
 
-export { db };
+export { app, database };

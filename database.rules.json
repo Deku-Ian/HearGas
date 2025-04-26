@@ -1,0 +1,18 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+    "readings": {
+      "$deviceId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "sensors": {
+      "$deviceId": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}

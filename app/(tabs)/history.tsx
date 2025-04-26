@@ -208,38 +208,70 @@ const History = () => {
     }
   };
 
-  const formatDate = (timestamp: Date | undefined): string => {
-    if (!timestamp) return "Unknown time";
-    return timestamp.toLocaleString();
+  const formatTimestamp = (timestamp: Date) => {
+    return timestamp.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
   };
 
   const renderItem = ({ item }: { item: ReadingData }) => (
     <View style={styles.card}>
-      <Text style={styles.time}>{formatDate(item.timestamp)}</Text>
-      <Text style={styles.deviceId}>Device: {item.deviceId}</Text>
-      <Text style={styles.readings}>
-        Readings: MQ2: {item.readings?.mq2_value || 0}, MQ4:{" "}
-        {item.readings?.mq4_value || 0}, MQ9: {item.readings?.mq9_value || 0},
-        MQ135: {item.readings?.mq135_value || 0}
-      </Text>
-      <Text style={styles.gases}>
-        Detected: {item.detectedGases?.join(", ") || "None"}
-      </Text>
-      <View style={styles.alertContainer}>
-        <Text>Alert Level: </Text>
-        <Text style={getAlertStyle(item.alertLevel)}>{item.alertLevel}</Text>
+      <View style={styles.readingContainer}>
+        <View style={styles.readingRow}>
+          <Typo style={styles.readingLabel}>MQ2 (LPG):</Typo>
+          <Typo style={styles.readingValue}>
+            {item.readings.mq2_value || 0}
+          </Typo>
+        </View>
+        <View style={styles.readingRow}>
+          <Typo style={styles.readingLabel}>MQ4 (CH4):</Typo>
+          <Typo style={styles.readingValue}>
+            {item.readings.mq4_value || 0}
+          </Typo>
+        </View>
+        <View style={styles.readingRow}>
+          <Typo style={styles.readingLabel}>MQ9 (CO):</Typo>
+          <Typo style={styles.readingValue}>
+            {item.readings.mq9_value || 0}
+          </Typo>
+        </View>
+        <View style={styles.readingRow}>
+          <Typo style={styles.readingLabel}>MQ135 (NH3):</Typo>
+          <Typo style={styles.readingValue}>
+            {item.readings.mq135_value || 0}
+          </Typo>
+        </View>
+        <View style={styles.alertRow}>
+          <Typo style={styles.alertLabel}>Alert Level:</Typo>
+          <Typo style={renderAlertColor(item.alertLevel)}>
+            {item.alertLevel}
+          </Typo>
+        </View>
+        <Typo style={styles.timestamp}>{formatTimestamp(item.timestamp)}</Typo>
       </View>
     </View>
   );
 
-  const getAlertStyle = (level: string) => {
+  const renderAlertColor = (level: string) => {
+    const baseStyle = {
+      fontSize: verticalScale(14),
+      fontWeight: "bold" as const,
+    };
     switch (level) {
       case "High":
-        return styles.highAlert;
+        return { ...baseStyle, color: colors.rose };
       case "Medium":
-        return styles.mediumAlert;
+        return { ...baseStyle, color: colors.primaryDark };
+      case "Low":
+        return { ...baseStyle, color: colors.green };
       default:
-        return styles.lowAlert;
+        return { ...baseStyle, color: colors.green };
     }
   };
 
@@ -300,7 +332,7 @@ const History = () => {
           )}
         </View>
 
-        <Typo style={styles.historyTitle}>Recent Gas Detected</Typo>
+        <Typo style={styles.historyTitle}>Previous Readings</Typo>
 
         {loading && !refreshing ? (
           <ActivityIndicator size="large" color={colors.primary} />
@@ -332,6 +364,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacingy._5,
     gap: spacingy._10,
     flex: 1,
+    backgroundColor: colors.neutra1900,
   },
   segmentControlContainer: {
     marginTop: spacingy._5,
@@ -348,7 +381,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     borderRadius: radius._12,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    backgroundColor: colors.neutral700,
   },
   chartContainer: {
     position: "relative",
@@ -359,7 +392,7 @@ const styles = StyleSheet.create({
   segmentFontStyle: {
     fontSize: verticalScale(13),
     fontWeight: "bold",
-    color: colors.black,
+    color: colors.white,
   },
   segmentStyle: {
     height: scale(37),
@@ -374,10 +407,9 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
   },
   noChart: {
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    backgroundColor: colors.neutral700,
     height: verticalScale(210),
   },
-  // History list styles
   historyTitle: {
     fontSize: verticalScale(18),
     fontWeight: "bold",
@@ -385,54 +417,47 @@ const styles = StyleSheet.create({
     marginBottom: spacingy._10,
   },
   card: {
-    backgroundColor: colors.neutral100,
+    backgroundColor: colors.white,
     borderRadius: radius._10,
     padding: spacingx._15,
     marginBottom: spacingy._12,
     elevation: 2,
-    shadowColor: "#000",
+    shadowColor: colors.neutral700,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
   },
-  time: {
-    fontSize: verticalScale(14),
-    fontWeight: "bold",
-    marginBottom: spacingy._10,
+  readingContainer: {
+    gap: spacingy._10,
   },
-  deviceId: {
-    fontSize: verticalScale(12),
-    color: colors.neutral700,
-    marginBottom: spacingy._10,
-  },
-  readings: {
-    fontSize: verticalScale(12),
-    marginBottom: spacingy._10,
-  },
-  gases: {
-    fontSize: verticalScale(13),
-    marginBottom: spacingy._10,
-  },
-  alertContainer: {
+  readingRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-  highAlert: {
-    color: colors.rose,
+  readingLabel: {
+    fontSize: verticalScale(12),
     fontWeight: "bold",
+    marginRight: spacingx._10,
   },
-  mediumAlert: {
-    color: "orange",
-    fontWeight: "bold",
+  readingValue: {
+    fontSize: verticalScale(12),
   },
-  lowAlert: {
-    color: "green",
+  alertRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  alertLabel: {
+    fontSize: verticalScale(12),
     fontWeight: "bold",
+    marginRight: spacingx._10,
+  },
+  timestamp: {
+    fontSize: verticalScale(12),
   },
   emptyText: {
     textAlign: "center",
     marginTop: verticalScale(20),
     fontSize: verticalScale(14),
-    color: colors.neutral700,
+    color: colors.neutral400,
   },
 });

@@ -1,86 +1,65 @@
-import { db } from "../config/firebase";
-import {
-  collection,
-  addDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-  serverTimestamp,
-} from "firebase/firestore";
+import { ref, get, set, push } from "firebase/database";
+import { database } from "@/config/firebase";
 
-// Save sensor data to Firestore
-export const saveSensorData = async (
-  deviceId,
-  readings,
-  detectedGases,
-  alertLevel
-) => {
+// Save sensor data to Firebase Realtime Database
+export const saveSensorData = async (deviceId, readings) => {
   try {
-    const readingData = {
-      timestamp: serverTimestamp(),
-      deviceId,
-      readings: {
-        mq2_value: readings.mq2 || 0,
-        mq4_value: readings.mq4 || 0, // Added MQ-4 sensor
-        mq9_value: readings.mq9 || 0,
-        mq135_value: readings.mq135 || 0,
-      },
-      detectedGases,
-      alertLevel,
-      // Add userId if you have user authentication
-      // userId: currentUser.uid,
-    };
+    const timestamp = Date.now();
+    const readingRef = ref(database, `readings/${deviceId}`);
+    const newReadingRef = push(readingRef);
 
-    const docRef = await addDoc(collection(db, "readings"), readingData);
-    console.log("Reading saved with ID: ", docRef.id);
-    return docRef.id;
+    await set(newReadingRef, {
+      ...readings,
+      timestamp,
+      deviceId,
+    });
+
+    // Also update the current reading
+    const currentRef = ref(database, `sensors/${deviceId}/current`);
+    await set(currentRef, {
+      ...readings,
+      timestamp,
+    });
+
+    console.log("Data saved successfully");
+    return true;
   } catch (error) {
-    console.error("Error saving reading:", error);
-    throw error;
+    console.error("Error saving sensor data:", error);
+    return false;
   }
 };
 
-// Get sensor reading history (most recent first)
-export const getReadingHistory = async (limitCount = 50) => {
+// Get reading history from Firebase Realtime Database
+export const getReadingHistory = async (limit = 50) => {
   try {
-    const q = query(
-      collection(db, "readings"),
-      orderBy("timestamp", "desc"),
-      limit(limitCount) // Use the renamed parameter here
-    );
+    const readingsRef = ref(database, "readings");
+    const snapshot = await get(readingsRef);
+    const readings = [];
 
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate() || null,
-    }));
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+
+      // Convert the data to array and add timestamps
+      Object.keys(data).forEach((deviceId) => {
+        const deviceReadings = data[deviceId];
+        if (deviceReadings) {
+          Object.keys(deviceReadings).forEach((key) => {
+            readings.push({
+              id: key,
+              ...deviceReadings[key],
+              timestamp: deviceReadings[key].timestamp || Date.now(),
+            });
+          });
+        }
+      });
+
+      // Sort by timestamp manually (newest first) and limit results
+      return readings.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
+    }
+
+    return [];
   } catch (error) {
     console.error("Error fetching reading history:", error);
-    throw error;
-  }
-};
-
-// Do the same for getDeviceReadings
-export const getDeviceReadings = async (deviceId, limitCount = 50) => {
-  try {
-    const q = query(
-      collection(db, "readings"),
-      where("deviceId", "==", deviceId),
-      orderBy("timestamp", "desc"),
-      limit(limitCount) // Use the renamed parameter here
-    );
-
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate() || null,
-    }));
-  } catch (error) {
-    console.error("Error fetching device readings:", error);
-    throw error;
+    return [];
   }
 };
