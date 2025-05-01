@@ -2,7 +2,6 @@ import {
   StyleSheet,
   View,
   Text,
-  FlatList,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
@@ -17,6 +16,7 @@ import { BarChart } from "react-native-gifted-charts";
 import Loading from "@/components/Loading";
 import { getReadingHistory } from "@/api/sensorApi";
 import Typo from "@/components/Typo";
+import { CalendarView } from "@/components/CalendarView";
 
 // Define types
 interface ReadingData {
@@ -208,71 +208,9 @@ const History = () => {
     }
   };
 
-  const formatTimestamp = (timestamp: Date) => {
-    return timestamp.toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true,
-    });
-  };
-
-  const renderItem = ({ item }: { item: ReadingData }) => (
-    <View style={styles.card}>
-      <View style={styles.readingContainer}>
-        <View style={styles.readingRow}>
-          <Typo style={styles.readingLabel}>MQ2 (LPG):</Typo>
-          <Typo style={styles.readingValue}>
-            {item.readings.mq2_value || 0}
-          </Typo>
-        </View>
-        <View style={styles.readingRow}>
-          <Typo style={styles.readingLabel}>MQ4 (CH4):</Typo>
-          <Typo style={styles.readingValue}>
-            {item.readings.mq4_value || 0}
-          </Typo>
-        </View>
-        <View style={styles.readingRow}>
-          <Typo style={styles.readingLabel}>MQ9 (CO):</Typo>
-          <Typo style={styles.readingValue}>
-            {item.readings.mq9_value || 0}
-          </Typo>
-        </View>
-        <View style={styles.readingRow}>
-          <Typo style={styles.readingLabel}>MQ135 (NH3):</Typo>
-          <Typo style={styles.readingValue}>
-            {item.readings.mq135_value || 0}
-          </Typo>
-        </View>
-        <View style={styles.alertRow}>
-          <Typo style={styles.alertLabel}>Alert Level:</Typo>
-          <Typo style={renderAlertColor(item.alertLevel)}>
-            {item.alertLevel}
-          </Typo>
-        </View>
-        <Typo style={styles.timestamp}>{formatTimestamp(item.timestamp)}</Typo>
-      </View>
-    </View>
-  );
-
-  const renderAlertColor = (level: string) => {
-    const baseStyle = {
-      fontSize: verticalScale(14),
-      fontWeight: "bold" as const,
-    };
-    switch (level) {
-      case "High":
-        return { ...baseStyle, color: colors.rose };
-      case "Medium":
-        return { ...baseStyle, color: colors.primaryDark };
-      case "Low":
-        return { ...baseStyle, color: colors.green };
-      default:
-        return { ...baseStyle, color: colors.green };
-    }
+  const handleDayPress = (day: string, dayReadings: ReadingData[]) => {
+    // This function is called when a day is pressed in the calendar
+    // The modal is handled by the CalendarView component
   };
 
   return (
@@ -337,19 +275,7 @@ const History = () => {
         {loading && !refreshing ? (
           <ActivityIndicator size="large" color={colors.primary} />
         ) : (
-          <FlatList
-            data={readings}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-            style={styles.list}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No readings found</Text>
-            }
-            ListHeaderComponent={<View style={{ height: 10 }} />}
-          />
+          <CalendarView readings={readings} onDayPress={handleDayPress} />
         )}
       </View>
     </ScreenWrapper>
@@ -369,12 +295,6 @@ const styles = StyleSheet.create({
   segmentControlContainer: {
     marginTop: spacingy._5,
     marginBottom: spacingy._10,
-  },
-  listContainer: {
-    flex: 1,
-  },
-  list: {
-    flex: 1,
   },
   chartLoadingContainer: {
     position: "absolute",
@@ -397,15 +317,6 @@ const styles = StyleSheet.create({
   segmentStyle: {
     height: scale(37),
   },
-  searchIcon: {
-    backgroundColor: colors.neutral700,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 100,
-    width: verticalScale(35),
-    height: verticalScale(35),
-    borderCurve: "continuous",
-  },
   noChart: {
     backgroundColor: colors.neutral700,
     height: verticalScale(210),
@@ -415,49 +326,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: spacingy._10,
     marginBottom: spacingy._10,
-  },
-  card: {
-    backgroundColor: colors.white,
-    borderRadius: radius._10,
-    padding: spacingx._15,
-    marginBottom: spacingy._12,
-    elevation: 2,
-    shadowColor: colors.neutral700,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-  },
-  readingContainer: {
-    gap: spacingy._10,
-  },
-  readingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  readingLabel: {
-    fontSize: verticalScale(12),
-    fontWeight: "bold",
-    marginRight: spacingx._10,
-  },
-  readingValue: {
-    fontSize: verticalScale(12),
-  },
-  alertRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  alertLabel: {
-    fontSize: verticalScale(12),
-    fontWeight: "bold",
-    marginRight: spacingx._10,
-  },
-  timestamp: {
-    fontSize: verticalScale(12),
-  },
-  emptyText: {
-    textAlign: "center",
-    marginTop: verticalScale(20),
-    fontSize: verticalScale(14),
-    color: colors.neutral400,
   },
 });

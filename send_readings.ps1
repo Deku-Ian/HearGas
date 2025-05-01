@@ -22,11 +22,15 @@ function Test-FirebaseConnection {
 }
 
 function Get-SensorReadings {
+    $readings = @{
+        mq2_value   = 900    # LPG - Warning level
+        mq4_value   = 1800   # Methane - Warning level
+        mq9_value   = 4100   # CO - Danger level
+        mq135_value = 1500   # Ammonia - Normal level
+    }
+
     return @{
-        mq2_value     = 100
-        mq4_value     = 200
-        mq9_value     = 300
-        mq135_value   = 400
+        readings      = $readings
         timestamp     = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
         alertLevel    = "Low"
         detectedGases = @()
@@ -42,6 +46,7 @@ function Send-ToFirebase {
     try {
         $jsonBody = $readings | ConvertTo-Json -Compress
         Write-Host "Sending data to Firebase..."
+        Write-Host "Data being sent: $jsonBody"
         
         $response = Invoke-WebRequest `
             -Uri $firebaseUrl `

@@ -5,6 +5,7 @@ import {
   ScrollView,
   FlatList,
   TouchableOpacity,
+  Platform, 
 } from "react-native";
 import { colors, radius, spacingx, spacingy } from "@/constants/theme";
 import ScreenWrapper from "@/components/ScreenWrapper";
@@ -15,6 +16,7 @@ import { WiFiNetworkService } from "@/services/WifiNetworkService";
 import { ref, get, onValue } from "firebase/database";
 import { database } from "@/config/firebase";
 import { ArrowBendDownLeft, ArrowBendDownRight } from "phosphor-react-native";
+
 
 interface Reading {
   mq2_value: number;
@@ -44,7 +46,7 @@ const Dashboard = () => {
   const [deviceId, setDeviceId] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkConnection = () => {
+    const checkConnection = async () => {
       const status = WiFiNetworkService.getConnectionStatus();
       setConnectionStatus({
         isConnected: status.isConnected,
@@ -55,62 +57,55 @@ const Dashboard = () => {
     };
 
     checkConnection();
-    const interval = setInterval(checkConnection, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    if (connectionStatus.isConnected) {
-      if (deviceId) {
-        const deviceRef = ref(database, `sensors/${deviceId}`);
-
-        const unsubscribe = onValue(deviceRef, (snapshot) => {
-          const data = snapshot.val();
-
-          if (data && data.current) {
-            const currentData = data.current;
-
-            if (currentData) {
-              const reading: Reading = {
-                mq2_value: currentData.mq2_value || 0,
-                mq4_value: currentData.mq4_value || 0,
-                mq9_value: currentData.mq9_value || 0,
-                mq135_value: currentData.mq135_value || 0,
-                timestamp: currentData.timestamp || Date.now(),
-                alertLevel: currentData.alertLevel || "Low",
-              };
-
-              setCurrentReading(reading);
-              setRecentReadings((prev) => {
-                const newReadings = [reading, ...prev];
-                return newReadings.slice(0, 30);
-              });
-            }
-          }
-        });
-
-        return () => unsubscribe();
-      }
+    if (!deviceId) {
+      console.log("No device ID available");
+      return;
     }
-  }, [connectionStatus.isConnected, deviceId]);
 
-  useEffect(() => {
-    if (!deviceId) return;
+    if (!connectionStatus.isConnected) {
+      console.log("Device not connected");
+      return;
+    }
 
+    console.log("Setting up Firebase listener for device:", deviceId);
     const currentRef = ref(database, `sensors/${deviceId}/current`);
+    
     const unsubscribe = onValue(currentRef, (snapshot) => {
       const data = snapshot.val();
+      console.log("Received data from Firebase:", data);
+      
       if (data) {
-        setCurrentReading((prev) => ({
-          ...prev,
-          ...data,
-          timestamp: data.timestamp,
-        }));
+        const readings = data.readings || {};
+        const reading: Reading = {
+          mq2_value: readings.mq2_value || 0,
+          mq4_value: readings.mq4_value || 0,
+          mq9_value: readings.mq9_value || 0,
+          mq135_value: readings.mq135_value || 0,
+          timestamp: data.timestamp || Date.now(),
+          alertLevel: data.alertLevel || "Low",
+        };
+
+        console.log("Processed reading:", reading);
+        setCurrentReading(reading);
+        setRecentReadings((prev) => {
+          const newReadings = [reading, ...prev];
+          return newReadings.slice(0, 30);
+        });
+      } else {
+        console.log("No data available from Firebase");
       }
+    }, (error) => {
+      console.error("Firebase listener error:", error);
     });
 
-    return () => unsubscribe();
-  }, [deviceId]);
+    return () => {
+      console.log("Cleaning up Firebase listener");
+      unsubscribe();
+    };
+  }, [deviceId, connectionStatus.isConnected]);
 
   const formatTimestamp = (timestamp: number) => {
     if (!timestamp) return "No data";
@@ -183,6 +178,81 @@ const Dashboard = () => {
     </View>
   );
 
+  // Helper to determine alert level and color for each gas type
+  const getAlertLevelAndColor = (value: number, gas: string) => {
+    let level = "Normal";
+    let color = colors.green;
+
+    switch (gas) {
+      case "LPG":
+        if (value >= 4000) {
+          level = "Danger";
+          color = colors.rose;
+        } else if (value >= 800) {
+          level = "Warning";
+          color = "#FFA500"; // Orange
+        }
+        break;
+      case "AMMONIA":
+      case "METHANE":
+      case "CARBON MONOXIDE":
+        if (value >= 4000) {
+          level = "Danger";
+          color = colors.rose;
+        } else if (value >= 1701) {
+          level = "Warning";
+          color = "#FFA500"; // Orange
+        }
+        break;
+    }
+
+    return { level, color };
+  };
+
+  const GasCard = ({
+    gas,
+    value,
+    timestamp,
+  }: {
+    gas: string;
+    value: number;
+    timestamp: number;
+  }) => {
+    // If value is 0 or undefined, show normal state
+    const { level, color } = value ? getAlertLevelAndColor(value, gas) : { level: "Normal", color: colors.green };
+    return (
+      <View style={[styles.gasCard, { backgroundColor: color }]}>
+        <Typo style={styles.gasCardTitle}>{gas}</Typo>
+        <Typo style={styles.gasCardValue}>{value || 0}</Typo>
+        <Typo style={styles.gasCardTimestamp}>
+          {formatTimestamp(timestamp)}
+        </Typo>
+        <Typo style={styles.gasCardAlert}>{level}</Typo>
+      </View>
+    );
+  };
+
+  // Helper to get the highest gas for a reading (already defined)
+  const getHighestGas = (reading: Reading) => {
+    const gases = [
+      { gas: "LPG", value: reading.mq2_value },
+      { gas: "METHANE", value: reading.mq4_value },
+      { gas: "CARBON MONOXIDE", value: reading.mq9_value },
+      { gas: "AMMONIA", value: reading.mq135_value },
+    ];
+    return gases.reduce((max, curr) => (curr.value > max.value ? curr : max), gases[0]);
+  };
+
+  // Transform paginatedReadings to show only the highest gas for each
+  const paginatedHighestReadings = paginatedReadings.map((reading) => {
+    const highest = getHighestGas(reading);
+    return {
+      gas: highest.gas,
+      value: highest.value,
+      timestamp: reading.timestamp,
+    };
+  });
+
   return (
     <ScreenWrapper>
       <View style={styles.header}>
@@ -225,42 +295,11 @@ const Dashboard = () => {
 
           <Typo style={styles.sectionTitle}>Current Reading</Typo>
           {currentReading ? (
-            <View style={styles.card}>
-              <View style={styles.readingContainer}>
-                <View style={styles.readingRow}>
-                  <Typo style={styles.readingLabel}>LPG:</Typo>
-                  <Typo style={styles.readingValue}>
-                    {currentReading.mq2_value}
-                  </Typo>
-                </View>
-                <View style={styles.readingRow}>
-                  <Typo style={styles.readingLabel}>METHANE:</Typo>
-                  <Typo style={styles.readingValue}>
-                    {currentReading.mq4_value}
-                  </Typo>
-                </View>
-                <View style={styles.readingRow}>
-                  <Typo style={styles.readingLabel}>CARBON MONOXIDE:</Typo>
-                  <Typo style={styles.readingValue}>
-                    {currentReading.mq9_value}
-                  </Typo>
-                </View>
-                <View style={styles.readingRow}>
-                  <Typo style={styles.readingLabel}>AMMONIA:</Typo>
-                  <Typo style={styles.readingValue}>
-                    {currentReading.mq135_value}
-                  </Typo>
-                </View>
-                <View style={styles.alertRow}>
-                  <Typo style={styles.alertLabel}>Alert Level:</Typo>
-                  <Typo style={renderAlertColor(currentReading.alertLevel)}>
-                    {currentReading.alertLevel}
-                  </Typo>
-                </View>
-                <Typo style={styles.timestamp}>
-                  Data collected at: {formatTimestamp(currentReading.timestamp)}
-                </Typo>
-              </View>
+            <View style={styles.gasCardsContainer}>
+              <GasCard gas="LPG" value={currentReading.mq2_value} timestamp={currentReading.timestamp} />
+              <GasCard gas="METHANE" value={currentReading.mq4_value} timestamp={currentReading.timestamp} />
+              <GasCard gas="CARBON MONOXIDE" value={currentReading.mq9_value} timestamp={currentReading.timestamp} />
+              <GasCard gas="AMMONIA" value={currentReading.mq135_value} timestamp={currentReading.timestamp} />
             </View>
           ) : (
             <Typo style={styles.emptyText}>
@@ -308,48 +347,15 @@ const Dashboard = () => {
               )}
             </View>
 
-            {paginatedReadings.length > 0 ? (
+            {paginatedHighestReadings.length > 0 ? (
               <View style={styles.recentReadingsContainer}>
-                {paginatedReadings.map((item, index) => (
-                  <View key={index} style={styles.card}>
-                    <View style={styles.readingContainer}>
-                      <View style={styles.readingRow}>
-                        <Typo style={styles.readingLabel}>LPG:</Typo>
-                        <Typo style={styles.readingValue}>
-                          {item.mq2_value}
-                        </Typo>
-                      </View>
-                      <View style={styles.readingRow}>
-                        <Typo style={styles.readingLabel}>METHANE:</Typo>
-                        <Typo style={styles.readingValue}>
-                          {item.mq4_value}
-                        </Typo>
-                      </View>
-                      <View style={styles.readingRow}>
-                        <Typo style={styles.readingLabel}>
-                          CARBON MONOXIDE:
-                        </Typo>
-                        <Typo style={styles.readingValue}>
-                          {item.mq9_value}
-                        </Typo>
-                      </View>
-                      <View style={styles.readingRow}>
-                        <Typo style={styles.readingLabel}>AMMONIA:</Typo>
-                        <Typo style={styles.readingValue}>
-                          {item.mq135_value}
-                        </Typo>
-                      </View>
-                      <View style={styles.alertRow}>
-                        <Typo style={styles.alertLabel}>Alert Level:</Typo>
-                        <Typo style={renderAlertColor(item.alertLevel)}>
-                          {item.alertLevel}
-                        </Typo>
-                      </View>
-                      <Typo style={styles.timestamp}>
-                        {formatTimestamp(item.timestamp)}
-                      </Typo>
-                    </View>
-                  </View>
+                {paginatedHighestReadings.map((item, index) => (
+                  <GasCard
+                    key={index}
+                    gas={item.gas}
+                    value={item.value}
+                    timestamp={item.timestamp}
+                  />
                 ))}
               </View>
             ) : (
@@ -381,9 +387,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacingx._20,
-    paddingVertical: spacingy._15,
+    paddingVertical: spacingy._15, 
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral200,
+    paddingTop: Platform.OS === "ios" ? spacingy._10 : spacingy._10,
   },
   headerTitle: {
     fontSize: verticalScale(20),
@@ -518,5 +525,47 @@ const styles = StyleSheet.create({
     fontSize: verticalScale(14),
     color: colors.neutral400,
     fontWeight: "bold",
+  },
+  gasCardsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: spacingy._10,
+    gap: spacingx._10,
+  },
+  gasCard: {
+    flex: 1,
+    minWidth: "45%",
+    borderRadius: radius._10,
+    padding: spacingx._15,
+    marginBottom: spacingy._10,
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: colors.neutral700,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+  },
+  gasCardTitle: {
+    fontSize: verticalScale(16),
+    fontWeight: "bold",
+    color: colors.white,
+    marginBottom: spacingy._5,
+  },
+  gasCardValue: {
+    fontSize: verticalScale(24),
+    fontWeight: "bold",
+    color: colors.white,
+  },
+  gasCardTimestamp: {
+    fontSize: verticalScale(12),
+    color: colors.white,
+    marginTop: spacingy._5,
+  },
+  gasCardAlert: {
+    fontSize: verticalScale(14),
+    fontWeight: "bold",
+    color: colors.white,
+    marginTop: spacingy._5,
   },
 });

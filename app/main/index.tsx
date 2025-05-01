@@ -26,7 +26,7 @@ const home = () => {
       </View>
       <View style={styles.IconContainer}>
         <View style={styles.iconGroup}>
-          {/* Bluetooth icon */}
+          {/* bluetooth icon */}
           <View style={styles.iconBox}>
             <Animated.Image
               entering={FadeIn.duration(1000)}
@@ -36,7 +36,7 @@ const home = () => {
             />
           </View>
 
-          {/* Signal icon */}
+          {/* signal icon */}
           <View style={styles.iconBox}>
             <Animated.Image
               entering={FadeIn.duration(1000).delay(100)}
@@ -46,7 +46,7 @@ const home = () => {
             />
           </View>
 
-          {/* Mask icon */}
+          {/* mask icon */}
           <View style={styles.iconBox}>
             <Animated.Image
               entering={FadeIn.duration(1000).delay(200)}
