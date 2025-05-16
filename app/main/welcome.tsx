@@ -20,7 +20,7 @@ const welcome = () => {
             entering={FadeIn.duration(1000)}
             style={styles.welcomeImage}
             resizeMode="contain"
-            source={require("@/assets/images/react-logo.png")}
+            source={require("@/assets/images/welcomemask.png")}
           />
         </ImageBackground>
       </View>

@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   Platform, 
+  Modal,
 } from "react-native";
 import { colors, radius, spacingx, spacingy } from "@/constants/theme";
 import ScreenWrapper from "@/components/ScreenWrapper";
@@ -16,7 +17,8 @@ import { WiFiNetworkService } from "@/services/WifiNetworkService";
 import { ref, get, onValue } from "firebase/database";
 import { database } from "@/config/firebase";
 import { ArrowBendDownLeft, ArrowBendDownRight } from "phosphor-react-native";
-
+import { useReadings } from "@/context/ReadingsContext";
+import { MaterialIcons } from '@expo/vector-icons';
 
 interface Reading {
   mq2_value: number;
@@ -33,9 +35,15 @@ interface ConnectionStatus {
   lastUpdate: number | null;
 }
 
+const GAS_INFO = {
+  LPG: "LPG (Liquefied Petroleum Gas): Used for heating and cooking. High levels can be explosive and harmful.",
+  METHANE: "Methane: A flammable gas. High concentrations can cause suffocation and explosions.",
+  "CARBON MONOXIDE": "Carbon Monoxide: A colorless, odorless gas. Dangerous even at low concentrations.",
+  AMMONIA: "Ammonia: Used in cleaning and agriculture. High levels are toxic to humans.",
+};
+
 const Dashboard = () => {
-  const [currentReading, setCurrentReading] = useState<Reading | null>(null);
-  const [recentReadings, setRecentReadings] = useState<Reading[]>([]);
+  const { currentReading, recentReadings, updateReadings } = useReadings();
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
     isConnected: false,
     deviceName: null,
@@ -44,6 +52,55 @@ const Dashboard = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const readingsPerPage = 3;
   const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [showGasInfo, setShowGasInfo] = useState<string | null>(null);
+  const [localCurrentReading, setLocalCurrentReading] = useState<Reading | null>(null);
+  const [pendingReadings, setPendingReadings] = useState<Reading[]>([]);
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
+
+  // Function to check if enough time has passed since last update
+  const canUpdateRecentReadings = () => {
+    const now = Date.now();
+    const twoMinutesInMs = 2 * 60 * 1000;
+    return now - lastUpdateTime >= twoMinutesInMs;
+  };
+
+  // Function to add reading to recent readings after 10 minutes
+  const scheduleReadingUpdate = (reading: Reading) => {
+    console.log('Scheduling reading for update:', reading);
+    console.log('Current time:', new Date().toLocaleString());
+    console.log('Scheduled update time:', new Date(Date.now() + 10 * 60 * 1000).toLocaleString());
+    
+    setPendingReadings(prev => {
+      console.log('Current pending readings:', prev);
+      return [...prev, reading];
+    });
+
+    setTimeout(() => {
+      console.log('Checking if can update recent readings...');
+      if (canUpdateRecentReadings()) {
+        console.log('Adding reading to recent readings:', reading);
+        console.log('Current time:', new Date().toLocaleString());
+        updateReadings(reading);
+        setLastUpdateTime(Date.now());
+        setPendingReadings(prev => {
+          const updated = prev.filter(r => r.timestamp !== reading.timestamp);
+          console.log('Updated pending readings:', updated);
+          return updated;
+        });
+      } else {
+        console.log('Not enough time passed since last update, rescheduling...');
+        // Reschedule for 1 minute later
+        setTimeout(() => {
+          if (canUpdateRecentReadings()) {
+            console.log('Adding reading to recent readings after delay:', reading);
+            updateReadings(reading);
+            setLastUpdateTime(Date.now());
+            setPendingReadings(prev => prev.filter(r => r.timestamp !== reading.timestamp));
+          }
+        }, 60 * 1000); // Check again after 1 minute
+      }
+    }, 10 * 60 * 1000); // 10 minutes in milliseconds
+  };
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -89,11 +146,18 @@ const Dashboard = () => {
         };
 
         console.log("Processed reading:", reading);
-        setCurrentReading(reading);
-        setRecentReadings((prev) => {
-          const newReadings = [reading, ...prev];
-          return newReadings.slice(0, 30);
-        });
+        
+        // Update current reading immediately
+        setLocalCurrentReading(reading);
+        
+        // Schedule this reading to be added to recent readings after 10 minutes
+        scheduleReadingUpdate(reading);
+
+        // Update connection status with latest timestamp
+        setConnectionStatus(prev => ({
+          ...prev,
+          lastUpdate: reading.timestamp
+        }));
       } else {
         console.log("No data available from Firebase");
       }
@@ -101,11 +165,37 @@ const Dashboard = () => {
       console.error("Firebase listener error:", error);
     });
 
+    // Set up an interval to check for connection status
+    const connectionCheckInterval = setInterval(() => {
+      const status = WiFiNetworkService.getConnectionStatus();
+      setConnectionStatus(prev => ({
+        ...prev,
+        isConnected: status.isConnected,
+        deviceName: status.deviceName
+      }));
+    }, 5000); // Check every 5 seconds
+
     return () => {
       console.log("Cleaning up Firebase listener");
       unsubscribe();
+      clearInterval(connectionCheckInterval);
     };
   }, [deviceId, connectionStatus.isConnected]);
+
+  // Add effect to monitor current reading changes
+  useEffect(() => {
+    console.log('Current reading updated:', localCurrentReading);
+  }, [localCurrentReading]);
+
+  // Add effect to monitor recent readings changes
+  useEffect(() => {
+    console.log('Recent readings updated:', recentReadings);
+  }, [recentReadings]);
+
+  // Add effect to monitor pending readings changes
+  useEffect(() => {
+    console.log('Pending readings updated:', pendingReadings);
+  }, [pendingReadings]);
 
   const formatTimestamp = (timestamp: number) => {
     if (!timestamp) return "No data";
@@ -209,25 +299,20 @@ const Dashboard = () => {
     return { level, color };
   };
 
-  const GasCard = ({
-    gas,
-    value,
-    timestamp,
-  }: {
-    gas: string;
-    value: number;
-    timestamp: number;
-  }) => {
-    // If value is 0 or undefined, show normal state
+  // Modern Gas Card with Info Icon
+  const GasCardModern = ({ gas, value, timestamp }: { gas: string, value: number, timestamp: number }) => {
     const { level, color } = value ? getAlertLevelAndColor(value, gas) : { level: "Normal", color: colors.green };
     return (
-      <View style={[styles.gasCard, { backgroundColor: color }]}>
-        <Typo style={styles.gasCardTitle}>{gas}</Typo>
-        <Typo style={styles.gasCardValue}>{value || 0}</Typo>
-        <Typo style={styles.gasCardTimestamp}>
-          {formatTimestamp(timestamp)}
-        </Typo>
-        <Typo style={styles.gasCardAlert}>{level}</Typo>
+      <View style={[styles.gasCardModern, { backgroundColor: color }]}> 
+        <View style={styles.gasCardHeader}>
+          <Typo style={styles.gasCardTitleModern}>{gas}</Typo>
+          <TouchableOpacity onPress={() => setShowGasInfo(gas)}>
+            <MaterialIcons name="info-outline" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <Typo style={styles.gasCardValueModern}>{value || 0}</Typo>
+        <Typo style={styles.gasCardTimestampModern}>{formatTimestamp(timestamp)}</Typo>
+        <Typo style={styles.gasCardAlertModern}>{level}</Typo>
       </View>
     );
   };
@@ -294,12 +379,23 @@ const Dashboard = () => {
           </View>
 
           <Typo style={styles.sectionTitle}>Current Reading</Typo>
-          {currentReading ? (
-            <View style={styles.gasCardsContainer}>
-              <GasCard gas="LPG" value={currentReading.mq2_value} timestamp={currentReading.timestamp} />
-              <GasCard gas="METHANE" value={currentReading.mq4_value} timestamp={currentReading.timestamp} />
-              <GasCard gas="CARBON MONOXIDE" value={currentReading.mq9_value} timestamp={currentReading.timestamp} />
-              <GasCard gas="AMMONIA" value={currentReading.mq135_value} timestamp={currentReading.timestamp} />
+          {localCurrentReading ? (
+            <View style={styles.gasGrid}>
+              {["LPG", "METHANE", "CARBON MONOXIDE", "AMMONIA"].map((gas) => (
+                <GasCardModern
+                  key={gas}
+                  gas={gas}
+                  value={gas === "LPG"
+                    ? localCurrentReading.mq2_value
+                    : gas === "METHANE"
+                    ? localCurrentReading.mq4_value
+                    : gas === "CARBON MONOXIDE"
+                    ? localCurrentReading.mq9_value
+                    : localCurrentReading.mq135_value
+                  }
+                  timestamp={localCurrentReading.timestamp}
+                />
+              ))}
             </View>
           ) : (
             <Typo style={styles.emptyText}>
@@ -350,7 +446,7 @@ const Dashboard = () => {
             {paginatedHighestReadings.length > 0 ? (
               <View style={styles.recentReadingsContainer}>
                 {paginatedHighestReadings.map((item, index) => (
-                  <GasCard
+                  <GasCardModern
                     key={index}
                     gas={item.gas}
                     value={item.value}
@@ -364,6 +460,25 @@ const Dashboard = () => {
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={!!showGasInfo}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowGasInfo(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Typo style={styles.modalTitle}>{showGasInfo}</Typo>
+            <Typo style={styles.modalBody}>
+              {showGasInfo ? GAS_INFO[showGasInfo as keyof typeof GAS_INFO] : ""}
+            </Typo>
+            <TouchableOpacity style={styles.closeModalButton} onPress={() => setShowGasInfo(null)}>
+              <Typo style={styles.closeModalButtonText}>Close</Typo>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScreenWrapper>
   );
 };
@@ -382,6 +497,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacingx._20,
     paddingVertical: spacingy._5,
     gap: spacingy._10,
+    paddingTop: spacingy._10,
   },
   header: {
     flexDirection: "row",
@@ -390,13 +506,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacingy._15, 
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral200,
-    paddingTop: Platform.OS === "ios" ? spacingy._10 : spacingy._10,
+    paddingTop: 10,
   },
   headerTitle: {
     fontSize: verticalScale(20),
     fontWeight: "bold",
-    marginLeft: spacingx._10,
+    marginLeft: spacingx._25,
     alignItems: "center",
+    justifyContent: "center",
   },
   recentReadingsSection: {
     marginBottom: spacingy._20,
@@ -526,46 +643,82 @@ const styles = StyleSheet.create({
     color: colors.neutral400,
     fontWeight: "bold",
   },
-  gasCardsContainer: {
+  gasGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: spacingy._10,
+    padding: spacingx._15,
     gap: spacingx._10,
   },
-  gasCard: {
-    flex: 1,
-    minWidth: "45%",
+  gasCardModern: {
+    flexBasis: "48%",
+    backgroundColor: colors.green,
     borderRadius: radius._10,
     padding: spacingx._15,
     marginBottom: spacingy._10,
-    alignItems: "center",
+    minHeight: 140,
+    justifyContent: "space-between",
     elevation: 2,
-    shadowColor: colors.neutral700,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
   },
-  gasCardTitle: {
-    fontSize: verticalScale(16),
+  gasCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  gasCardTitleModern: {
+    fontSize: verticalScale(15),
     fontWeight: "bold",
-    color: colors.white,
-    marginBottom: spacingy._5,
+    color: "#fff",
   },
-  gasCardValue: {
-    fontSize: verticalScale(24),
+  gasCardValueModern: {
+    fontSize: verticalScale(28),
     fontWeight: "bold",
-    color: colors.white,
+    color: "#fff",
+    marginVertical: 2,
   },
-  gasCardTimestamp: {
-    fontSize: verticalScale(12),
-    color: colors.white,
-    marginTop: spacingy._5,
+  gasCardTimestampModern: {
+    fontSize: verticalScale(11),
+    color: "#fff",
+    marginBottom: 2,
   },
-  gasCardAlert: {
+  gasCardAlertModern: {
+    fontSize: verticalScale(13),
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    padding: 24,
+    borderRadius: 10,
+    width: "80%",
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  modalBody: {
+    fontSize: 14,
+    color: "#444",
+  },
+  closeModalButton: {
+    padding: spacingx._10,
+    backgroundColor: colors.primary,
+    borderRadius: radius._6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  closeModalButtonText: {
     fontSize: verticalScale(14),
     fontWeight: "bold",
-    color: colors.white,
-    marginTop: spacingy._5,
+    color: "#fff",
   },
 });
