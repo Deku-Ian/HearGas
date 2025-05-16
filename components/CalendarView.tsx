@@ -29,46 +29,76 @@ const DayModal = ({ visible, onClose, day, readings }: DayModalProps) => {
     });
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const getAlertColor = (level: string) => {
+    switch (level) {
+      case "Danger":
+      case "Super Danger":
+        return colors.rose;
+      case "Warning":
+        return "#FFA500";
+      default:
+        return colors.green;
+    }
+  };
+
   return (
     <View style={styles.modalOverlay}>
       <ModalWrapper style={styles.modalContent}>
         <View style={styles.modalHeader}>
-          <Typo style={styles.modalTitle}>Readings for {day}</Typo>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Typo style={styles.closeButtonText}>×</Typo>
+          <TouchableOpacity onPress={onClose} style={styles.backButton}>
+            <Typo style={styles.backButtonText}>← Back</Typo>
           </TouchableOpacity>
+          <Typo style={styles.modalTitle}>{formatDate(day)}</Typo>
+          <View style={styles.spacer} />
         </View>
         <View style={styles.modalBody}>
           {readings.length > 0 ? (
             readings.map((reading, index) => (
               <View key={index} style={styles.readingItem}>
-                <View style={styles.readingRow}>
-                  <Typo style={styles.readingLabel}>MQ2 (LPG):</Typo>
-                  <Typo style={styles.readingValue}>
-                    {reading.readings.mq2_value || 0}
+                <View style={styles.readingHeader}>
+                  <Typo style={styles.readingTime}>
+                    {formatTimestamp(reading.timestamp)}
                   </Typo>
+                  <View style={[styles.alertBadge, { backgroundColor: getAlertColor(reading.alertLevel) }]}>
+                    <Typo style={styles.alertText}>{reading.alertLevel}</Typo>
+                  </View>
                 </View>
-                <View style={styles.readingRow}>
-                  <Typo style={styles.readingLabel}>MQ4 (CH4):</Typo>
-                  <Typo style={styles.readingValue}>
-                    {reading.readings.mq4_value || 0}
-                  </Typo>
+                <View style={styles.readingGrid}>
+                  <View style={styles.readingCell}>
+                    <Typo style={styles.readingLabel}>LPG</Typo>
+                    <Typo style={styles.readingValue}>
+                      {reading.readings.mq2_value || 0}
+                    </Typo>
+                  </View>
+                  <View style={styles.readingCell}>
+                    <Typo style={styles.readingLabel}>METHANE</Typo>
+                    <Typo style={styles.readingValue}>
+                      {reading.readings.mq4_value || 0}
+                    </Typo>
+                  </View>
+                  <View style={styles.readingCell}>
+                    <Typo style={styles.readingLabel}>CO</Typo>
+                    <Typo style={styles.readingValue}>
+                      {reading.readings.mq9_value || 0}
+                    </Typo>
+                  </View>
+                  <View style={styles.readingCell}>
+                    <Typo style={styles.readingLabel}>AMMONIA</Typo>
+                    <Typo style={styles.readingValue}>
+                      {reading.readings.mq135_value || 0}
+                    </Typo>
+                  </View>
                 </View>
-                <View style={styles.readingRow}>
-                  <Typo style={styles.readingLabel}>MQ9 (CO):</Typo>
-                  <Typo style={styles.readingValue}>
-                    {reading.readings.mq9_value || 0}
-                  </Typo>
-                </View>
-                <View style={styles.readingRow}>
-                  <Typo style={styles.readingLabel}>MQ135 (NH3):</Typo>
-                  <Typo style={styles.readingValue}>
-                    {reading.readings.mq135_value || 0}
-                  </Typo>
-                </View>
-                <Typo style={styles.timestamp}>
-                  {formatTimestamp(reading.timestamp)}
-                </Typo>
               </View>
             ))
           ) : (
@@ -205,6 +235,7 @@ const styles = StyleSheet.create({
     maxHeight: "80%",
     borderRadius: radius._12,
     padding: spacingx._20,
+    backgroundColor: colors.neutral700,
   },
   modalHeader: {
     flexDirection: "row",
@@ -212,16 +243,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: spacingy._20,
   },
+  backButton: {
+    padding: spacingx._5,
+  },
+  backButtonText: {
+    fontSize: verticalScale(16),
+    color: colors.primary,
+    fontWeight: "bold",
+  },
   modalTitle: {
     fontSize: verticalScale(18),
     fontWeight: "bold",
-  },
-  closeButton: {
-    padding: spacingx._5,
-  },
-  closeButtonText: {
-    fontSize: verticalScale(24),
-    color: colors.neutral400,
+    color: colors.white,
+    textAlign: "center",
   },
   modalBody: {
     maxHeight: "80%",
@@ -232,29 +266,55 @@ const styles = StyleSheet.create({
     padding: spacingx._15,
     marginBottom: spacingy._10,
   },
-  readingRow: {
+  readingHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: spacingy._5,
+    alignItems: "center",
+    marginBottom: spacingy._10,
   },
-  readingLabel: {
-    fontSize: verticalScale(12),
+  readingTime: {
+    fontSize: verticalScale(14),
     color: colors.neutral400,
   },
-  readingValue: {
+  alertBadge: {
+    paddingHorizontal: spacingx._10,
+    paddingVertical: spacingy._5,
+    borderRadius: radius._6,
+  },
+  alertText: {
     fontSize: verticalScale(12),
     color: colors.white,
     fontWeight: "bold",
   },
-  timestamp: {
+  readingGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacingx._10,
+  },
+  readingCell: {
+    flex: 1,
+    minWidth: "45%",
+    backgroundColor: colors.neutral700,
+    padding: spacingx._10,
+    borderRadius: radius._10,
+    alignItems: "center",
+  },
+  readingLabel: {
     fontSize: verticalScale(12),
     color: colors.neutral400,
-    textAlign: "right",
-    marginTop: spacingy._5,
+    marginBottom: spacingy._5,
+  },
+  readingValue: {
+    fontSize: verticalScale(16),
+    color: colors.white,
+    fontWeight: "bold",
   },
   noReadings: {
     textAlign: "center",
     color: colors.neutral400,
     fontSize: verticalScale(14),
+  },
+  spacer: {
+    width: scale(50),
   },
 }); 

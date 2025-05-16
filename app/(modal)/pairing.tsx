@@ -145,6 +145,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacingy._15,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral200,
+    paddingTop: 50,
   },
   headerTitle: {
     fontSize: verticalScale(20),

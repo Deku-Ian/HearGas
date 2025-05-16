@@ -1,6 +1,6 @@
 # PowerShell script to send sensor readings to Firebase
 # Configuration
-$firebaseUrl = "https://rtmask-cf652-default-rtdb.firebaseio.com/sensors/mask001/current.json"
+$firebaseUrl = "https://rtmask-cf652-default-rtdb.firebaseio.com/sensors/HearGas01/current.json"
 
 function Test-FirebaseConnection {
     try {

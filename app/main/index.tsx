@@ -57,36 +57,20 @@ const home = () => {
           </View>
         </View>
       </View>
-      <View style={{ flex: 1 }} />
-      {/* footer */}
       <View style={styles.footer}>
         <Animated.View
           entering={FadeInDown.duration(1000).springify().damping(12)}
           style={{ alignItems: "flex-start" }}
         >
-          <Typo size={30} fontweight={"800"}>
-            Intructions on how
+          <Typo size={24} fontweight={"800"} style={{ marginBottom: 8 }}>
+            How to Connect Your Device
           </Typo>
-          <Typo size={30} fontweight={"800"}>
-            to connect to device:
-          </Typo>
-        </Animated.View>
-        <Animated.View
-          entering={FadeInDown.duration(1000)
-            .delay(100)
-            .springify()
-            .damping(12)}
-          style={{ alignItems: "flex-start", gap: 2 }}
-        >
-          <Typo size={17} color={colors.textLight}>
-            1. open the switch on the mask
-          </Typo>
-          <Typo size={17} color={colors.textLight}>
-            2. wait for the prompt "pairing!"
-          </Typo>
-          <Typo size={17} color={colors.textLight}>
-            3. Make sure to enabled your bluetooth
-          </Typo>
+          <View style={styles.instructionsList}>
+            <Typo size={16} color={colors.textLight}>1. Turn on the switch on your mask device.</Typo>
+            <Typo size={16} color={colors.textLight}>2. Wait for the prompt: <Typo fontweight={"700"} color={colors.primary}>“Pairing!”</Typo></Typo>
+            <Typo size={16} color={colors.textLight}>3. Tap <Typo fontweight={"700"} color={colors.primary}>Connect</Typo> above to pair your device.</Typo>
+            <Typo size={16} color={colors.textLight}>4. Once connected, tap <Typo fontweight={"700"} color={colors.primary}>Go to dashboard</Typo> to monitor readings.</Typo>
+          </View>
         </Animated.View>
         <Animated.View
           entering={FadeInDown.duration(1000)
@@ -162,10 +146,7 @@ const styles = StyleSheet.create({
     paddingBottom: verticalScale(45),
     gap: spacingy._20,
     shadowColor: "white",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     elevation: 10,
     shadowRadius: 25,
     shadowOpacity: 0.15,
@@ -185,5 +166,9 @@ const styles = StyleSheet.create({
   loginButton: {
     marginRight: spacingx._10,
     padding: 5,
+  },
+  instructionsList: {
+    gap: 4,
+    marginBottom: 12,
   },
 });
