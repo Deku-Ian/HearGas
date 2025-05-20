@@ -112,42 +112,25 @@ const History = () => {
   const processReadingsForChart = (readings: ReadingData[]) => {
     if (!readings.length) return [];
 
-    console.log('Starting to process readings. Total readings:', readings.length);
-    console.log('Sample reading:', readings[0]);
-
     // Date filter: only include readings from the last 7 or 30 days
     const now = new Date();
     let filteredReadings = readings;
     
     if (activeIndex === 0) { // Weekly
-      // Get readings from exactly 7 days ago to now
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       filteredReadings = readings.filter(reading => {
         const readingDate = new Date(reading.timestamp);
         return readingDate >= weekAgo && readingDate <= now;
       });
-      console.log('Weekly readings range:', {
-        from: weekAgo.toLocaleString(),
-        to: now.toLocaleString(),
-        count: filteredReadings.length,
-        sampleReadings: filteredReadings.slice(0, 3)
-      });
     } else if (activeIndex === 1) { // Monthly
-      // Get readings from exactly 30 days ago to now
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       filteredReadings = readings.filter(reading => {
         const readingDate = new Date(reading.timestamp);
         return readingDate >= monthAgo && readingDate <= now;
       });
-      console.log('Monthly readings range:', {
-        from: monthAgo.toLocaleString(),
-        to: now.toLocaleString(),
-        count: filteredReadings.length,
-        sampleReadings: filteredReadings.slice(0, 3)
-      });
     }
 
-    // Sort readings by timestamp to ensure chronological order
+    // Sort readings by timestamp
     filteredReadings.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
     // Define gases and levels
@@ -162,10 +145,6 @@ const History = () => {
     // Helper to get level for a value
     const getLevel = (value: number, gas: GasType) => {
       const thresholds = GAS_THRESHOLDS[gas];
-      console.log(`Checking level for ${gas} with value ${value}:`, {
-        warning: thresholds.warning,
-        danger: thresholds.danger
-      });
       if (value >= thresholds.danger) return "Danger";
       if (value >= thresholds.warning) return "Warning";
       return "Normal";
@@ -184,7 +163,7 @@ const History = () => {
     });
 
     // Process each reading
-    filteredReadings.forEach((reading, index) => {
+    filteredReadings.forEach(reading => {
       const { mq2_value, mq4_value, mq9_value, mq135_value } = reading.readings;
       const values = {
         LPG: mq2_value || 0,
@@ -193,62 +172,46 @@ const History = () => {
         AMMONIA: mq135_value || 0,
       };
 
-      console.log(`Processing reading ${index + 1}:`, values);
-
       gases.forEach(gas => {
         const value = values[gas];
         const level = getLevel(value, gas);
-        console.log(`${gas} value ${value} classified as ${level}`);
         if (value > maxByGasAndLevel[gas]![level]) {
           maxByGasAndLevel[gas]![level] = value;
-          console.log(`New max for ${gas} ${level}: ${value}`);
         }
       });
     });
 
-    console.log('Final max values by gas and level:', maxByGasAndLevel);
-
-    // Build chart data: for each gas, for each level present, show a bar
+    // Build chart data: for each gas, show all three levels
     const chartData: ChartDataItem[] = [];
+    const gasLabelMap: Record<string, string> = {
+      LPG: 'LPG',
+      METHANE: 'METHANE',
+      CARBON_MONOXIDE: 'CARBON\nMONOXIDE',
+      AMMONIA: 'AMMONIA',
+    };
     gases.forEach((gas, gasIdx) => {
-      let addedBar = false;
-      levels.forEach(level => {
+      // Add all three levels for each gas
+      levels.forEach((level, levelIdx) => {
         const value = maxByGasAndLevel[gas]?.[level] ?? 0;
-        console.log(`Creating chart data for ${gas} ${level}:`, value);
-        // Show bar if there's any value greater than 0
-        if (value > 0) {
-          chartData.push({
-            value,
-            label: `${gas} (${level})`,
-            spacing: scale(4),
-            labelweight: "scale(30)",
-            frontColor: levelColors[level],
-          });
-          addedBar = true;
-          console.log(`Added bar for ${gas} ${level} with value ${value}`);
-        }
+        chartData.push({
+          value,
+          label: levelIdx === 0 ? gasLabelMap[gas] : '', // Use mapped label with line breaks
+          spacing: scale(4),
+          labelweight: "scale(30)",
+          frontColor: levelColors[level],
+        });
       });
+
       // Add a spacer after each gas group except the last one
-      if (addedBar && gasIdx < gases.length - 1) {
+      if (gasIdx < gases.length - 1) {
         chartData.push({
           value: 0,
           label: '',
-          spacing: scale(20),
+          spacing: scale(40), // Keep increased spacing for readability
           labelweight: '',
           frontColor: 'transparent',
         });
       }
-    });
-
-    console.log('Final chart data:', {
-      totalReadings: filteredReadings.length,
-      chartDataPoints: chartData.length,
-      timeRange: {
-        start: filteredReadings[0]?.timestamp.toLocaleString(),
-        end: filteredReadings[filteredReadings.length - 1]?.timestamp.toLocaleString()
-      },
-      maxValues: maxByGasAndLevel,
-      chartData
     });
 
     return chartData;
@@ -327,8 +290,8 @@ const History = () => {
               </View>
               <BarChart
                 data={chartData}
-                barWidth={scale(30)}
-                spacing={scale(30)}
+                barWidth={scale(28)}
+                spacing={scale(25)}
                 hideRules
                 yAxisLabelPrefix=""
                 yAxisThickness={0}
@@ -337,9 +300,14 @@ const History = () => {
                 yAxisTextStyle={{ color: colors.neutral350 }}
                 xAxisLabelTextStyle={{
                   color: colors.neutral350,
-                  fontSize: verticalScale(12),
+                  fontSize: verticalScale(10), // Reduce font size for full names
+                  flexWrap: 'wrap',
+                  textAlign: 'center',
                 }}
                 noOfSections={3}
+                barBorderRadius={4}
+                initialSpacing={scale(20)}
+                endSpacing={scale(20)}
               />
             </>
           ) : (

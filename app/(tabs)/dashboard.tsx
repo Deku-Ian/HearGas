@@ -199,7 +199,16 @@ const Dashboard = () => {
 
   const formatTimestamp = (timestamp: number) => {
     if (!timestamp) return "No data";
-    return new Date(timestamp).toLocaleString();
+    const date = new Date(timestamp);
+    return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
   };
 
   const paginatedReadings = recentReadings.slice(
@@ -300,19 +309,26 @@ const Dashboard = () => {
   };
 
   // Modern Gas Card with Info Icon
-  const GasCardModern = ({ gas, value, timestamp }: { gas: string, value: number, timestamp: number }) => {
-    const { level, color } = value ? getAlertLevelAndColor(value, gas) : { level: "Normal", color: colors.green };
+  const GasCardModern = ({ gas, value, timestamp, isConnected }: { gas: string, value: number, timestamp: number, isConnected: boolean }) => {
+    const { level, color } = isConnected ? getAlertLevelAndColor(value, gas) : { level: "Normal", color: colors.neutral200 };
+    const textColor = isConnected ? "#fff" : colors.neutral700;
+    
+    const titleStyle = { ...styles.gasCardTitleModern, color: textColor };
+    const valueStyle = { ...styles.gasCardValueModern, color: textColor };
+    const timestampStyle = { ...styles.gasCardTimestampModern, color: textColor };
+    const alertStyle = { ...styles.gasCardAlertModern, color: textColor };
+    
     return (
       <View style={[styles.gasCardModern, { backgroundColor: color }]}> 
         <View style={styles.gasCardHeader}>
-          <Typo style={styles.gasCardTitleModern}>{gas}</Typo>
+          <Typo style={titleStyle}>{gas}</Typo>
           <TouchableOpacity onPress={() => setShowGasInfo(gas)}>
-            <MaterialIcons name="info-outline" size={18} color="#fff" />
+            <MaterialIcons name="info-outline" size={18} color={textColor} />
           </TouchableOpacity>
         </View>
-        <Typo style={styles.gasCardValueModern}>{value || 0}</Typo>
-        <Typo style={styles.gasCardTimestampModern}>{formatTimestamp(timestamp)}</Typo>
-        <Typo style={styles.gasCardAlertModern}>{level}</Typo>
+        <Typo style={valueStyle}>{value || 0}</Typo>
+        <Typo style={timestampStyle}>{formatTimestamp(timestamp)}</Typo>
+        <Typo style={alertStyle}>{level}</Typo>
       </View>
     );
   };
@@ -379,29 +395,26 @@ const Dashboard = () => {
           </View>
 
           <Typo style={styles.sectionTitle}>Current Reading</Typo>
-          {localCurrentReading ? (
-            <View style={styles.gasGrid}>
-              {["LPG", "METHANE", "CARBON MONOXIDE", "AMMONIA"].map((gas) => (
-                <GasCardModern
-                  key={gas}
-                  gas={gas}
-                  value={gas === "LPG"
+          <View style={styles.gasGrid}>
+            {["LPG", "METHANE", "CARBON MONOXIDE", "AMMONIA"].map((gas) => (
+              <GasCardModern
+                key={gas}
+                gas={gas}
+                value={connectionStatus.isConnected && localCurrentReading
+                  ? gas === "LPG"
                     ? localCurrentReading.mq2_value
                     : gas === "METHANE"
                     ? localCurrentReading.mq4_value
                     : gas === "CARBON MONOXIDE"
                     ? localCurrentReading.mq9_value
                     : localCurrentReading.mq135_value
-                  }
-                  timestamp={localCurrentReading.timestamp}
-                />
-              ))}
-            </View>
-          ) : (
-            <Typo style={styles.emptyText}>
-              Waiting for data from device...
-            </Typo>
-          )}
+                  : 0
+                }
+                timestamp={connectionStatus.isConnected && localCurrentReading ? localCurrentReading.timestamp : Date.now()}
+                isConnected={connectionStatus.isConnected}
+              />
+            ))}
+          </View>
 
           <View style={styles.recentReadingsSection}>
             <View style={styles.sectionHeader}>
@@ -451,6 +464,7 @@ const Dashboard = () => {
                     gas={item.gas}
                     value={item.value}
                     timestamp={item.timestamp}
+                    isConnected={connectionStatus.isConnected}
                   />
                 ))}
               </View>
@@ -652,7 +666,6 @@ const styles = StyleSheet.create({
   },
   gasCardModern: {
     flexBasis: "48%",
-    backgroundColor: colors.green,
     borderRadius: radius._10,
     padding: spacingx._15,
     marginBottom: spacingy._10,
@@ -669,23 +682,19 @@ const styles = StyleSheet.create({
   gasCardTitleModern: {
     fontSize: verticalScale(15),
     fontWeight: "bold",
-    color: "#fff",
   },
   gasCardValueModern: {
     fontSize: verticalScale(28),
     fontWeight: "bold",
-    color: "#fff",
     marginVertical: 2,
   },
   gasCardTimestampModern: {
     fontSize: verticalScale(11),
-    color: "#fff",
     marginBottom: 2,
   },
   gasCardAlertModern: {
     fontSize: verticalScale(13),
     fontWeight: "bold",
-    color: "#fff",
   },
   modalOverlay: {
     flex: 1,
