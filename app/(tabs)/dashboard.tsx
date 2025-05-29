@@ -19,6 +19,10 @@ import { database } from "@/config/firebase";
 import { ArrowBendDownLeft, ArrowBendDownRight } from "phosphor-react-native";
 import { useReadings } from "@/context/ReadingsContext";
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Speech from 'expo-speech';
+import * as Notifications from 'expo-notifications';
+import { Vibration } from 'react-native';
+import { Biohazard } from 'phosphor-react-native';
 
 interface Reading {
   mq2_value: number;
@@ -42,6 +46,33 @@ const GAS_INFO = {
   AMMONIA: "Ammonia: Used in cleaning and agriculture. High levels are toxic to humans.",
 };
 
+const GAS_SAFETY_INSTRUCTIONS = {
+  AMMONIA: [
+    "Avoid inhaling – cover nose/mouth.",
+    "Ventilate area immediately.",
+    "Exit enclosed spaces.",
+    "Do not use water on spills."
+  ],
+  LPG: [
+    "Do not use electrical devices.",
+    "Turn off gas source if safe.",
+    "Ventilate by opening doors/windows.",
+    "Avoid flames or sparks."
+  ],
+  METHANE: [
+    "Do not switch on lights or devices.",
+    "Open windows and doors.",
+    "Leave the area if smell is strong.",
+    "Notify safety personnel."
+  ],
+  "CARBON MONOXIDE": [
+    "Move to fresh air immediately.",
+    "Avoid re-entering the area.",
+    "Seek medical help if dizzy or nauseous.",
+    "Keep area ventilated."
+  ]
+};
+
 const Dashboard = () => {
   const { currentReading, recentReadings, updateReadings } = useReadings();
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
@@ -56,6 +87,10 @@ const Dashboard = () => {
   const [localCurrentReading, setLocalCurrentReading] = useState<Reading | null>(null);
   const [pendingReadings, setPendingReadings] = useState<Reading[]>([]);
   const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
+  const [dangerActive, setDangerActive] = useState(false);
+  const [dangerGases, setDangerGases] = useState<string[]>([]);
+  const [notificationSent, setNotificationSent] = useState(false);
+  const vibrationPattern = [500, 500]; // vibrate 500ms, pause 500ms
 
   // Function to check if enough time has passed since last update
   const canUpdateRecentReadings = () => {
@@ -196,6 +231,55 @@ const Dashboard = () => {
   useEffect(() => {
     console.log('Pending readings updated:', pendingReadings);
   }, [pendingReadings]);
+
+  // Detect danger gases
+  useEffect(() => {
+    if (!connectionStatus.isConnected || !localCurrentReading) {
+      setDangerActive(false);
+      setDangerGases([]);
+      setNotificationSent(false);
+      return;
+    }
+    const gases = [
+      { gas: 'LPG', value: localCurrentReading.mq2_value },
+      { gas: 'METHANE', value: localCurrentReading.mq4_value },
+      { gas: 'CARBON MONOXIDE', value: localCurrentReading.mq9_value },
+      { gas: 'AMMONIA', value: localCurrentReading.mq135_value },
+    ];
+    const dangerList = gases.filter(g => getAlertLevelAndColor(g.value, g.gas).level === 'Danger').map(g => g.gas);
+    setDangerGases(dangerList);
+    setDangerActive(dangerList.length > 0);
+  }, [localCurrentReading, connectionStatus.isConnected]);
+
+
+  useEffect(() => {
+    if (dangerActive && dangerGases.length > 0) {
+      Vibration.vibrate(vibrationPattern, true);
+      const ttsMsg = `Please evacuate the area. Danger detected: ${dangerGases.join(', ')}.`;
+      Speech.speak(ttsMsg, { rate: 1.0, pitch: 1.0 });
+    
+      if (!notificationSent) {
+        Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Danger Gas Detected!',
+            body: ttsMsg,
+            sound: true,
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+          },
+          trigger: null,
+        });
+        setNotificationSent(true);
+      }
+    } else {
+      Vibration.cancel();
+      Speech.stop();
+      setNotificationSent(false);
+    }
+    return () => {
+      Vibration.cancel();
+      Speech.stop();
+    };
+  }, [dangerActive, dangerGases, notificationSent]);
 
   const formatTimestamp = (timestamp: number) => {
     if (!timestamp) return "No data";
@@ -493,6 +577,37 @@ const Dashboard = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Danger Overlay */}
+      {dangerActive && (
+        <View style={styles.dangerOverlay} pointerEvents="box-none">
+          <TouchableOpacity 
+            style={styles.closeButton} 
+            onPress={() => setDangerActive(false)}
+          >
+            <MaterialIcons name="close" size={24} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.dangerCenter}>
+            <Biohazard size={120} color="#fff" weight="fill" />
+            <Typo style={styles.dangerText}>DANGER!</Typo>
+            <Typo style={styles.dangerSubText}>
+              {`Detected: ${dangerGases.join(', ')}`}
+            </Typo>
+            <View style={styles.safetyInstructions}>
+              {dangerGases.map((gas) => (
+                <View key={gas} style={styles.gasInstructions}>
+                  <Typo style={styles.gasTitle}>{gas}</Typo>
+                  {GAS_SAFETY_INSTRUCTIONS[gas as keyof typeof GAS_SAFETY_INSTRUCTIONS].map((instruction, index) => (
+                    <Typo key={index} style={styles.instructionText}>
+                      • {instruction}
+                    </Typo>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+      )}
     </ScreenWrapper>
   );
 };
@@ -729,5 +844,56 @@ const styles = StyleSheet.create({
     fontSize: verticalScale(14),
     fontWeight: "bold",
     color: "#fff",
+  },
+  dangerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(200,0,0,0.85)',
+    zIndex: 1000,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dangerCenter: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dangerText: {
+    color: '#fff',
+    fontSize: 40,
+    fontWeight: 'bold',
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  dangerSubText: {
+    color: '#fff',
+    fontSize: 20,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 1001,
+    padding: 10,
+  },
+  safetyInstructions: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+    maxHeight: '60%',
+  },
+  gasInstructions: {
+    marginBottom: 15,
+  },
+  gasTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  instructionText: {
+    color: '#fff',
+    fontSize: 14,
+    marginBottom: 3,
+    lineHeight: 20,
   },
 });
